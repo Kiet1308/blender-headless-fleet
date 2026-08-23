@@ -1,0 +1,4 @@
+interface:
+  display_name: "Blender Headless Fleet"
+  short_description: "Run parallel Blender jobs safely"
+  default_prompt: "Use $blender-headless-fleet to run these Blender model jobs in parallel without conflicts."
