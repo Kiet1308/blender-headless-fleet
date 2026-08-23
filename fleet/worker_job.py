@@ -76,6 +76,36 @@ def add_uv_sphere(name: str, location: tuple[float, float, float], radius: float
     return obj
 
 
+def add_cylinder(name: str, location: tuple[float, float, float], radius: float, depth: float, material, rotation=(0.0, 0.0, 0.0)):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=32, radius=radius, depth=depth, location=location, rotation=rotation)
+    obj = bpy.context.object
+    obj.name = name
+    assign_material(obj, material)
+    return obj
+
+
+def add_cone(name: str, location: tuple[float, float, float], radius: float, depth: float, material):
+    bpy.ops.mesh.primitive_cone_add(vertices=32, radius1=radius, radius2=0.0, depth=depth, location=location)
+    obj = bpy.context.object
+    obj.name = name
+    assign_material(obj, material)
+    return obj
+
+
+def add_torus(name: str, location: tuple[float, float, float], major: float, minor: float, material):
+    bpy.ops.mesh.primitive_torus_add(major_radius=major, minor_radius=minor, major_segments=48, minor_segments=12, location=location)
+    obj = bpy.context.object
+    obj.name = name
+    assign_material(obj, material)
+    return obj
+
+
+def bevel(obj, width: float = 0.08) -> None:
+    modifier = obj.modifiers.new("SoftEdges", "BEVEL")
+    modifier.width = width
+    modifier.segments = 3
+
+
 def create_model(job: dict) -> None:
     kind = str(job.get("kind", "cube")).lower()
     color = job.get("color", [0.15, 0.45, 0.95])
@@ -114,6 +144,51 @@ def create_model(job: dict) -> None:
         add_cube("RightLeg", (0.35, 0, 0.25), (0.25, 0.3, 0.55), material)
         add_uv_sphere("EyeLeft", (-0.22, -0.46, 2.82), 0.1, accent)
         add_uv_sphere("EyeRight", (0.22, -0.46, 2.82), 0.1, accent)
+    elif kind == "spaceship":
+        body = add_cube("Fuselage", (0, 0, 1.35), (2.0, 0.62, 0.42), material)
+        bevel(body, 0.16)
+        add_cone("Nose", (2.25, 0, 1.35), 0.68, 1.4, accent).rotation_euler[1] = math.pi / 2
+        cockpit = add_uv_sphere("Cockpit", (0.55, 0, 1.78), 0.58, accent)
+        cockpit.scale = (1.25, 0.9, 0.45)
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        for side in (-1, 1):
+            wing = add_cube(f"Wing_{side}", (-0.25, side * 1.25, 1.1), (1.15, 0.65, 0.08), material)
+            wing.rotation_euler[0] = side * 0.08
+            bevel(wing, 0.05)
+            add_cylinder(f"Engine_{side}", (-1.8, side * 0.42, 1.05), 0.28, 1.05, accent, rotation=(0, math.pi / 2, 0))
+            add_torus(f"EngineRing_{side}", (-1.8, side * 0.42, 1.05), 0.3, 0.06, material).rotation_euler[1] = math.pi / 2
+            fin = add_cube(f"TailFin_{side}", (-1.25, side * 0.45, 1.95), (0.45, 0.08, 0.42), material)
+            fin.rotation_euler[1] = side * 0.2
+    elif kind == "castle":
+        keep = add_cube("Keep", (0, 0, 1.45), (1.65, 1.65, 1.45), material)
+        bevel(keep, 0.12)
+        for index, (x, y) in enumerate(((-1.9, -1.9), (-1.9, 1.9), (1.9, -1.9), (1.9, 1.9)), start=1):
+            add_cylinder(f"Turret_{index}", (x, y, 2.15), 0.62, 4.3, accent)
+            add_cone(f"TurretRoof_{index}", (x, y, 4.65), 0.82, 1.45, material)
+            for level in range(3):
+                add_cube(f"TurretBand_{index}_{level}", (x, y - 0.64, 1.0 + level * 1.0), (0.16, 0.08, 0.14), material)
+        add_cube("Gate", (0, -1.7, 0.85), (0.58, 0.12, 0.85), accent)
+        for x in (-0.85, 0.85):
+            for z in (1.5, 2.45):
+                add_cube(f"Window_{x}_{z}", (x, -1.68, z), (0.16, 0.06, 0.28), accent)
+        for x in (-1.1, 0, 1.1):
+            for y in (-1.7, 1.7):
+                add_cube(f"WallBattlement_{x}_{y}", (x, y, 3.0), (0.28, 0.18, 0.25), accent)
+        for y in (-1.1, 0, 1.1):
+            for x in (-1.7, 1.7):
+                add_cube(f"SideBattlement_{x}_{y}", (x, y, 3.0), (0.18, 0.28, 0.25), accent)
+    elif kind == "solar_system":
+        sun_material = make_material("Sun", [1.0, 0.22, 0.03], metallic=0.0, roughness=0.2)
+        sun = add_uv_sphere("Sun", (0, 0, 1.3), 0.9, sun_material)
+        for index, (orbit, radius, planet_color, speed) in enumerate(((1.6, 0.22, [0.4, 0.65, 0.9], 0.6), (2.5, 0.34, [0.9, 0.45, 0.1], 0.35), (3.5, 0.48, [0.2, 0.8, 0.35], 0.2)), start=1):
+            add_torus(f"Orbit_{index}", (0, 0, 1.3), orbit, 0.018, accent)
+            angle = index * 0.9
+            planet = add_uv_sphere(f"Planet_{index}", (math.cos(angle) * orbit, math.sin(angle) * orbit, 1.3), radius, make_material(f"PlanetMaterial_{index}", planet_color, roughness=0.55))
+            if index == 3:
+                add_torus("PlanetRing", (math.cos(angle) * orbit, math.sin(angle) * orbit, 1.3), 0.72, 0.04, accent).rotation_euler[0] = math.radians(68)
+        add_uv_sphere("Moon", (3.9, 0.0, 1.65), 0.12, accent)
+        bpy.ops.object.light_add(type="POINT", location=(0, 0, 2.0))
+        bpy.context.object.data.energy = 1200
     else:
         raise ValueError(f"Unsupported model kind: {kind}")
 

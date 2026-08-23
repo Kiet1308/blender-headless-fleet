@@ -49,6 +49,11 @@ BLENDER_FLEET_PARALLEL = "2"
 The exposed tools are `submit_model_job`, `get_job_status`,
 `wait_for_job`, `list_model_jobs`, and `fleet_info`.
 
+The safe preset kinds include `cube`, `sphere`, `monkey`, `tower`, `robot`,
+`spaceship`, `castle`, and `solar_system`. The last three are useful for a
+slightly more realistic multi-agent smoke test because they create multiple
+meshes, materials, lights, and modifiers.
+
 To test the actual MCP stdio handshake without changing Codex configuration:
 
 ```powershell
