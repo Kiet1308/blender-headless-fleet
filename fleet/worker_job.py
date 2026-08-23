@@ -172,7 +172,8 @@ def setup_scene(job: dict) -> None:
 def main() -> int:
     started = time.perf_counter()
     request = json.loads(JOB_FILE.read_text(encoding="utf-8"))
-    status("running", job_id=request.get("job_id"), pid=os.getpid())
+    started_at = utc_now()
+    status("running", job_id=request.get("job_id"), pid=os.getpid(), started_at=started_at)
     try:
         bpy.ops.wm.read_factory_settings(use_empty=True)
         create_model(request)
@@ -189,6 +190,7 @@ def main() -> int:
             "blend_file": str(blend_path),
             "preview_file": str(render_path),
             "objects": len(bpy.data.objects),
+            "started_at": started_at,
             "duration_seconds": round(time.perf_counter() - started, 3),
             "finished_at": utc_now(),
         }
@@ -201,6 +203,7 @@ def main() -> int:
             "job_id": request.get("job_id"),
             "error": str(exc),
             "traceback": traceback.format_exc(),
+            "started_at": started_at,
             "duration_seconds": round(time.perf_counter() - started, 3),
             "finished_at": utc_now(),
         }
