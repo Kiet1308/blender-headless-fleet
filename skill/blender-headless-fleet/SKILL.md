@@ -7,6 +7,9 @@ description: Run independent Blender model jobs through isolated headless worker
 
 Use this skill when the user asks for multiple agents to create Blender assets at the same time.
 
+Prefer the headless worker pool by default. Use visible GUI Blender instances
+only when the task explicitly requires viewport interaction or manual review.
+
 ## Core rules
 
 - Give each agent one job ID, one Blender process, one project directory, and one output `.blend` file.
